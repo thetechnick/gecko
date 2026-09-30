@@ -25,6 +25,14 @@ var (
 	//go:embed .schemas/nodepool_schema.yaml
 	NodePoolSchemaYAML string
 
+	// QuotaRequestSchemaYAML contains the OpenAPI v3 schema for QuotaRequest.
+	//go:embed .schemas/quotarequest_schema.yaml
+	QuotaRequestSchemaYAML string
+
+	// QuotaSchemaYAML contains the OpenAPI v3 schema for Quota.
+	//go:embed .schemas/quota_schema.yaml
+	QuotaSchemaYAML string
+
 	// VersionSchemaYAML contains the OpenAPI v3 schema for Version.
 	//go:embed .schemas/version_schema.yaml
 	VersionSchemaYAML string
@@ -101,6 +109,28 @@ var NodePoolResourceInfo = types.ResourceInfo{
 	},
 }
 
+// QuotaRequestResourceInfo describes the QuotaRequest resource type.
+var QuotaRequestResourceInfo = types.ResourceInfo{
+	GVK:        GroupVersion.WithKind("QuotaRequest"),
+	Plural:     "quotarequests",
+	Singular:   "quotarequest",
+	Namespaced: true,
+	SchemaYAML: QuotaRequestSchemaYAML,
+	// Generated from // +orlop:public-verbs annotation.
+	Verbs: []string{"create", "get", "list", "delete"},
+}
+
+// QuotaResourceInfo describes the Quota resource type.
+var QuotaResourceInfo = types.ResourceInfo{
+	GVK:        GroupVersion.WithKind("Quota"),
+	Plural:     "quotas",
+	Singular:   "quota",
+	Namespaced: true,
+	SchemaYAML: QuotaSchemaYAML,
+	// Generated from // +orlop:public-verbs annotation.
+	Verbs: []string{"list", "get"},
+}
+
 // VersionResourceInfo describes the Version resource type.
 var VersionResourceInfo = types.ResourceInfo{
 	GVK:        GroupVersion.WithKind("Version"),
@@ -118,6 +148,8 @@ func GetResourceInfos() []types.ResourceInfo {
 		ClusterResourceInfo,
 		ControlPlaneUpgradePolicyResourceInfo,
 		NodePoolResourceInfo,
+		QuotaRequestResourceInfo,
+		QuotaResourceInfo,
 		VersionResourceInfo,
 	}
 }

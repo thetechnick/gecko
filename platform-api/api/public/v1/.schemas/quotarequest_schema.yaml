@@ -1,0 +1,89 @@
+description: |-
+  QuotaRequest allows users to request a quota limit increase for a namespace.
+  Users submit a QuotaRequest with a justification; the QuotaRequest controller
+  automatically approves requests that fall within the namespace's
+  autoApproveThreshold. Requests that exceed the threshold remain Pending for
+  operator review.
+
+  QuotaRequest objects are immutable after creation. Approved requests cannot
+  be deleted via the public API, preserving them as an immutable audit record.
+properties:
+  apiVersion:
+    description: |-
+      APIVersion defines the versioned schema of this representation of an object.
+      Servers should convert recognized schemas to the latest internal value, and
+      may reject unrecognized values.
+      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+    type: string
+  kind:
+    description: |-
+      Kind is a string value representing the REST resource this object represents.
+      Servers may infer this from the endpoint the client submits requests to.
+      Cannot be updated.
+      In CamelCase.
+      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+    type: string
+  metadata:
+    type: object
+  spec:
+    description: QuotaRequestSpec contains the user's requested limit increase.
+    properties:
+      neededBy:
+        format: date-time
+        type: string
+        x-kubernetes-validations:
+        - message: neededBy is immutable
+          rule: self == oldSelf
+      reason:
+        maxLength: 1024
+        minLength: 1
+        type: string
+        x-kubernetes-validations:
+        - message: reason is immutable
+          rule: self == oldSelf
+      requestedLimit:
+        format: int32
+        minimum: 1
+        type: integer
+        x-kubernetes-validations:
+        - message: requestedLimit is immutable
+          rule: self == oldSelf
+      resource:
+        enum:
+        - hostedclusters
+        - nodepools
+        type: string
+        x-kubernetes-validations:
+        - message: resource is immutable
+          rule: self == oldSelf
+    required:
+    - reason
+    - requestedLimit
+    - resource
+    type: object
+  status:
+    description: |-
+      QuotaRequestStatus contains the current phase and decision details for a
+      QuotaRequest.
+    properties:
+      approvedLimit:
+        format: int32
+        minimum: 1
+        type: integer
+      decidedAt:
+        format: date-time
+        type: string
+      decisionNote:
+        maxLength: 1024
+        type: string
+      phase:
+        description: QuotaRequestPhase represents the lifecycle phase of a QuotaRequest.
+        enum:
+        - Pending
+        - Approved
+        - Denied
+        type: string
+    type: object
+required:
+- spec
+type: object

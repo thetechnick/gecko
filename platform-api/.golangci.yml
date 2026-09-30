@@ -130,6 +130,27 @@ linters:
       - linters:
           - kubeapilinter
         text: 'conditions: Conditions field .* has incorrect tags'
+
+      # nophase: QuotaRequestStatus.Phase is part of the quota design spec which
+      # intentionally uses a phase-based lifecycle (Pending/Approved/Denied) —
+      # conditions would not capture the approval workflow semantics.
+      - linters:
+          - kubeapilinter
+        text: 'nophase: .*QuotaRequestStatus\.Phase'
+
+      # nobools: QuotaRequestStatus.AutoApproved is an internal boolean flag
+      # used by the quota controller — it is intentionally a bool and not
+      # exposed on the public API.
+      - linters:
+          - kubeapilinter
+        text: 'nobools: field QuotaRequestStatus\.AutoApproved'
+
+      # kubeapilinter: quota/enforcer.go is implementation code, not an API
+      # type — skip all kubeapilinter checks for that file.
+      - linters:
+          - kubeapilinter
+        path: '^quota/'
+
     paths:
       - api/public/
 

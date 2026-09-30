@@ -20,6 +20,8 @@ import (
 	"github.com/openshift-online/gecko/orlop/pkg/apiserver/storage/memory"
 	"github.com/openshift-online/gecko/orlop/pkg/apiserver/storage/postgres"
 	spannerbackend "github.com/openshift-online/gecko/orlop/pkg/apiserver/storage/spanner"
+	privatev1 "github.com/openshift-online/gecko/platform-api/api/private/v1"
+	"github.com/openshift-online/gecko/platform-api/quota"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeschema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -168,13 +170,35 @@ func main() {
 		log.Println("No SPANNER_DATABASE or DB_HOST set, using in-memory storage")
 	}
 
+	// Install the quota enforcer. The enforcer reads Quota limits and counts
+	// existing resources from the same storage backend as the API server.
+	privateScheme := getPrivateScheme()
+	quotaGVK := privatev1.GroupVersion.WithKind("Quota")
+	clusterGVK := privatev1.GroupVersion.WithKind("Cluster")
+	nodepoolGVK := privatev1.GroupVersion.WithKind("NodePool")
+
+	quotaStore, err := storageFactory("quotas", privateScheme, quotaGVK)
+	if err != nil {
+		log.Fatalf("Failed to create quota store: %v", err)
+	}
+	clusterStore, err := storageFactory("clusters", privateScheme, clusterGVK)
+	if err != nil {
+		log.Fatalf("Failed to create cluster store for quota: %v", err)
+	}
+	nodepoolStore, err := storageFactory("nodepools", privateScheme, nodepoolGVK)
+	if err != nil {
+		log.Fatalf("Failed to create nodepool store for quota: %v", err)
+	}
+	enforcer := quota.NewStoreEnforcer(quotaStore, clusterStore, nodepoolStore)
+	privatev1.SetQuotaCheckFunc(enforcer.CheckQuota)
+
 	// Create server with resource configuration
 	opts := apiserver.Options{
 		Address: address,
 		Private: apiserver.PrivateAPIOptions{
 			Port:                     privatePort,
 			Resources:                getPrivateResources(),
-			Scheme:                   getPrivateScheme(),
+			Scheme:                   privateScheme,
 			TLSCertFile:              tlsCertFile,
 			TLSKeyFile:               tlsKeyFile,
 			AuthenticationKubeconfig: authnKubeconfig,

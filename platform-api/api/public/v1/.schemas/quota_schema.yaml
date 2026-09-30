@@ -1,0 +1,80 @@
+description: |-
+  Quota is the authoritative per-namespace record of resource limits and live
+  consumption for HostedCluster and NodePool objects. Each namespace has exactly
+  one Quota object, named "default", created and maintained by the platform.
+  Users have read-only access via the public API; operators manage limits and
+  auto-approval thresholds via the private API.
+properties:
+  apiVersion:
+    description: |-
+      APIVersion defines the versioned schema of this representation of an object.
+      Servers should convert recognized schemas to the latest internal value, and
+      may reject unrecognized values.
+      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+    type: string
+  kind:
+    description: |-
+      Kind is a string value representing the REST resource this object represents.
+      Servers may infer this from the endpoint the client submits requests to.
+      Cannot be updated.
+      In CamelCase.
+      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+    type: string
+  metadata:
+    type: object
+  spec:
+    description: QuotaSpec contains the configured resource limits for a namespace.
+    properties:
+      resources:
+        items:
+          description: QuotaResourceSpec contains the quota configuration for a single
+            resource kind.
+          properties:
+            limit:
+              format: int32
+              minimum: 0
+              type: integer
+            resource:
+              enum:
+              - hostedclusters
+              - nodepools
+              type: string
+          required:
+          - limit
+          - resource
+          type: object
+        type: array
+        x-kubernetes-list-map-keys:
+        - resource
+        x-kubernetes-list-type: map
+    type: object
+  status:
+    description: QuotaStatus contains live consumption data for a namespace.
+    properties:
+      resources:
+        items:
+          description: QuotaResourceStatus contains live consumption data for a single
+            resource kind.
+          properties:
+            current:
+              format: int32
+              minimum: 0
+              type: integer
+            quotaReachedTime:
+              format: date-time
+              type: string
+            resource:
+              enum:
+              - hostedclusters
+              - nodepools
+              type: string
+          required:
+          - current
+          - resource
+          type: object
+        type: array
+        x-kubernetes-list-map-keys:
+        - resource
+        x-kubernetes-list-type: map
+    type: object
+type: object

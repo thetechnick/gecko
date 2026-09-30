@@ -325,6 +325,106 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*privatev1.Quota)(nil), (*Quota)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_Quota_PrivateToPublic(a.(*privatev1.Quota), b.(*Quota), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*Quota)(nil), (*privatev1.Quota)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_Quota_PublicToPrivate(a.(*Quota), b.(*privatev1.Quota), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*privatev1.QuotaList)(nil), (*QuotaList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_QuotaList_PrivateToPublic(a.(*privatev1.QuotaList), b.(*QuotaList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*QuotaList)(nil), (*privatev1.QuotaList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_QuotaList_PublicToPrivate(a.(*QuotaList), b.(*privatev1.QuotaList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*privatev1.QuotaRequest)(nil), (*QuotaRequest)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_QuotaRequest_PrivateToPublic(a.(*privatev1.QuotaRequest), b.(*QuotaRequest), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*QuotaRequest)(nil), (*privatev1.QuotaRequest)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_QuotaRequest_PublicToPrivate(a.(*QuotaRequest), b.(*privatev1.QuotaRequest), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*privatev1.QuotaRequestList)(nil), (*QuotaRequestList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_QuotaRequestList_PrivateToPublic(a.(*privatev1.QuotaRequestList), b.(*QuotaRequestList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*QuotaRequestList)(nil), (*privatev1.QuotaRequestList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_QuotaRequestList_PublicToPrivate(a.(*QuotaRequestList), b.(*privatev1.QuotaRequestList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*privatev1.QuotaRequestSpec)(nil), (*QuotaRequestSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_QuotaRequestSpec_PrivateToPublic(a.(*privatev1.QuotaRequestSpec), b.(*QuotaRequestSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*QuotaRequestSpec)(nil), (*privatev1.QuotaRequestSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_QuotaRequestSpec_PublicToPrivate(a.(*QuotaRequestSpec), b.(*privatev1.QuotaRequestSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*privatev1.QuotaRequestStatus)(nil), (*QuotaRequestStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_QuotaRequestStatus_PrivateToPublic(a.(*privatev1.QuotaRequestStatus), b.(*QuotaRequestStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*QuotaRequestStatus)(nil), (*privatev1.QuotaRequestStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_QuotaRequestStatus_PublicToPrivate(a.(*QuotaRequestStatus), b.(*privatev1.QuotaRequestStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*privatev1.QuotaResourceSpec)(nil), (*QuotaResourceSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_QuotaResourceSpec_PrivateToPublic(a.(*privatev1.QuotaResourceSpec), b.(*QuotaResourceSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*QuotaResourceSpec)(nil), (*privatev1.QuotaResourceSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_QuotaResourceSpec_PublicToPrivate(a.(*QuotaResourceSpec), b.(*privatev1.QuotaResourceSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*privatev1.QuotaResourceStatus)(nil), (*QuotaResourceStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_QuotaResourceStatus_PrivateToPublic(a.(*privatev1.QuotaResourceStatus), b.(*QuotaResourceStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*QuotaResourceStatus)(nil), (*privatev1.QuotaResourceStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_QuotaResourceStatus_PublicToPrivate(a.(*QuotaResourceStatus), b.(*privatev1.QuotaResourceStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*privatev1.QuotaSpec)(nil), (*QuotaSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_QuotaSpec_PrivateToPublic(a.(*privatev1.QuotaSpec), b.(*QuotaSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*QuotaSpec)(nil), (*privatev1.QuotaSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_QuotaSpec_PublicToPrivate(a.(*QuotaSpec), b.(*privatev1.QuotaSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*privatev1.QuotaStatus)(nil), (*QuotaStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_QuotaStatus_PrivateToPublic(a.(*privatev1.QuotaStatus), b.(*QuotaStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*QuotaStatus)(nil), (*privatev1.QuotaStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_QuotaStatus_PublicToPrivate(a.(*QuotaStatus), b.(*privatev1.QuotaStatus), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*privatev1.ReleaseSpec)(nil), (*ReleaseSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_ReleaseSpec_PrivateToPublic(a.(*privatev1.ReleaseSpec), b.(*ReleaseSpec), scope)
 	}); err != nil {
@@ -1150,6 +1250,266 @@ func autoConvert_NodePoolStatus_PublicToPrivate(in *NodePoolStatus, out *private
 // Convert_NodePoolStatus_PublicToPrivate is an autogenerated conversion function.
 func Convert_NodePoolStatus_PublicToPrivate(in *NodePoolStatus, out *privatev1.NodePoolStatus, s conversion.Scope) error {
 	return autoConvert_NodePoolStatus_PublicToPrivate(in, out, s)
+}
+
+func autoConvert_Quota_PrivateToPublic(in *privatev1.Quota, out *Quota, s conversion.Scope) error {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}
+
+// Convert_Quota_PrivateToPublic is an autogenerated conversion function.
+func Convert_Quota_PrivateToPublic(in *privatev1.Quota, out *Quota, s conversion.Scope) error {
+	return autoConvert_Quota_PrivateToPublic(in, out, s)
+}
+
+func autoConvert_Quota_PublicToPrivate(in *Quota, out *privatev1.Quota, s conversion.Scope) error {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}
+
+// Convert_Quota_PublicToPrivate is an autogenerated conversion function.
+func Convert_Quota_PublicToPrivate(in *Quota, out *privatev1.Quota, s conversion.Scope) error {
+	return autoConvert_Quota_PublicToPrivate(in, out, s)
+}
+
+func autoConvert_QuotaList_PrivateToPublic(in *privatev1.QuotaList, out *QuotaList, s conversion.Scope) error {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}
+
+// Convert_QuotaList_PrivateToPublic is an autogenerated conversion function.
+func Convert_QuotaList_PrivateToPublic(in *privatev1.QuotaList, out *QuotaList, s conversion.Scope) error {
+	return autoConvert_QuotaList_PrivateToPublic(in, out, s)
+}
+
+func autoConvert_QuotaList_PublicToPrivate(in *QuotaList, out *privatev1.QuotaList, s conversion.Scope) error {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}
+
+// Convert_QuotaList_PublicToPrivate is an autogenerated conversion function.
+func Convert_QuotaList_PublicToPrivate(in *QuotaList, out *privatev1.QuotaList, s conversion.Scope) error {
+	return autoConvert_QuotaList_PublicToPrivate(in, out, s)
+}
+
+func autoConvert_QuotaRequest_PrivateToPublic(in *privatev1.QuotaRequest, out *QuotaRequest, s conversion.Scope) error {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}
+
+// Convert_QuotaRequest_PrivateToPublic is an autogenerated conversion function.
+func Convert_QuotaRequest_PrivateToPublic(in *privatev1.QuotaRequest, out *QuotaRequest, s conversion.Scope) error {
+	return autoConvert_QuotaRequest_PrivateToPublic(in, out, s)
+}
+
+func autoConvert_QuotaRequest_PublicToPrivate(in *QuotaRequest, out *privatev1.QuotaRequest, s conversion.Scope) error {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}
+
+// Convert_QuotaRequest_PublicToPrivate is an autogenerated conversion function.
+func Convert_QuotaRequest_PublicToPrivate(in *QuotaRequest, out *privatev1.QuotaRequest, s conversion.Scope) error {
+	return autoConvert_QuotaRequest_PublicToPrivate(in, out, s)
+}
+
+func autoConvert_QuotaRequestList_PrivateToPublic(in *privatev1.QuotaRequestList, out *QuotaRequestList, s conversion.Scope) error {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}
+
+// Convert_QuotaRequestList_PrivateToPublic is an autogenerated conversion function.
+func Convert_QuotaRequestList_PrivateToPublic(in *privatev1.QuotaRequestList, out *QuotaRequestList, s conversion.Scope) error {
+	return autoConvert_QuotaRequestList_PrivateToPublic(in, out, s)
+}
+
+func autoConvert_QuotaRequestList_PublicToPrivate(in *QuotaRequestList, out *privatev1.QuotaRequestList, s conversion.Scope) error {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}
+
+// Convert_QuotaRequestList_PublicToPrivate is an autogenerated conversion function.
+func Convert_QuotaRequestList_PublicToPrivate(in *QuotaRequestList, out *privatev1.QuotaRequestList, s conversion.Scope) error {
+	return autoConvert_QuotaRequestList_PublicToPrivate(in, out, s)
+}
+
+func autoConvert_QuotaRequestSpec_PrivateToPublic(in *privatev1.QuotaRequestSpec, out *QuotaRequestSpec, s conversion.Scope) error {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}
+
+// Convert_QuotaRequestSpec_PrivateToPublic is an autogenerated conversion function.
+func Convert_QuotaRequestSpec_PrivateToPublic(in *privatev1.QuotaRequestSpec, out *QuotaRequestSpec, s conversion.Scope) error {
+	return autoConvert_QuotaRequestSpec_PrivateToPublic(in, out, s)
+}
+
+func autoConvert_QuotaRequestSpec_PublicToPrivate(in *QuotaRequestSpec, out *privatev1.QuotaRequestSpec, s conversion.Scope) error {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}
+
+// Convert_QuotaRequestSpec_PublicToPrivate is an autogenerated conversion function.
+func Convert_QuotaRequestSpec_PublicToPrivate(in *QuotaRequestSpec, out *privatev1.QuotaRequestSpec, s conversion.Scope) error {
+	return autoConvert_QuotaRequestSpec_PublicToPrivate(in, out, s)
+}
+
+func autoConvert_QuotaRequestStatus_PrivateToPublic(in *privatev1.QuotaRequestStatus, out *QuotaRequestStatus, s conversion.Scope) error {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}
+
+// Convert_QuotaRequestStatus_PrivateToPublic is an autogenerated conversion function.
+func Convert_QuotaRequestStatus_PrivateToPublic(in *privatev1.QuotaRequestStatus, out *QuotaRequestStatus, s conversion.Scope) error {
+	return autoConvert_QuotaRequestStatus_PrivateToPublic(in, out, s)
+}
+
+func autoConvert_QuotaRequestStatus_PublicToPrivate(in *QuotaRequestStatus, out *privatev1.QuotaRequestStatus, s conversion.Scope) error {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}
+
+// Convert_QuotaRequestStatus_PublicToPrivate is an autogenerated conversion function.
+func Convert_QuotaRequestStatus_PublicToPrivate(in *QuotaRequestStatus, out *privatev1.QuotaRequestStatus, s conversion.Scope) error {
+	return autoConvert_QuotaRequestStatus_PublicToPrivate(in, out, s)
+}
+
+func autoConvert_QuotaResourceSpec_PrivateToPublic(in *privatev1.QuotaResourceSpec, out *QuotaResourceSpec, s conversion.Scope) error {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}
+
+// Convert_QuotaResourceSpec_PrivateToPublic is an autogenerated conversion function.
+func Convert_QuotaResourceSpec_PrivateToPublic(in *privatev1.QuotaResourceSpec, out *QuotaResourceSpec, s conversion.Scope) error {
+	return autoConvert_QuotaResourceSpec_PrivateToPublic(in, out, s)
+}
+
+func autoConvert_QuotaResourceSpec_PublicToPrivate(in *QuotaResourceSpec, out *privatev1.QuotaResourceSpec, s conversion.Scope) error {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}
+
+// Convert_QuotaResourceSpec_PublicToPrivate is an autogenerated conversion function.
+func Convert_QuotaResourceSpec_PublicToPrivate(in *QuotaResourceSpec, out *privatev1.QuotaResourceSpec, s conversion.Scope) error {
+	return autoConvert_QuotaResourceSpec_PublicToPrivate(in, out, s)
+}
+
+func autoConvert_QuotaResourceStatus_PrivateToPublic(in *privatev1.QuotaResourceStatus, out *QuotaResourceStatus, s conversion.Scope) error {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}
+
+// Convert_QuotaResourceStatus_PrivateToPublic is an autogenerated conversion function.
+func Convert_QuotaResourceStatus_PrivateToPublic(in *privatev1.QuotaResourceStatus, out *QuotaResourceStatus, s conversion.Scope) error {
+	return autoConvert_QuotaResourceStatus_PrivateToPublic(in, out, s)
+}
+
+func autoConvert_QuotaResourceStatus_PublicToPrivate(in *QuotaResourceStatus, out *privatev1.QuotaResourceStatus, s conversion.Scope) error {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}
+
+// Convert_QuotaResourceStatus_PublicToPrivate is an autogenerated conversion function.
+func Convert_QuotaResourceStatus_PublicToPrivate(in *QuotaResourceStatus, out *privatev1.QuotaResourceStatus, s conversion.Scope) error {
+	return autoConvert_QuotaResourceStatus_PublicToPrivate(in, out, s)
+}
+
+func autoConvert_QuotaSpec_PrivateToPublic(in *privatev1.QuotaSpec, out *QuotaSpec, s conversion.Scope) error {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}
+
+// Convert_QuotaSpec_PrivateToPublic is an autogenerated conversion function.
+func Convert_QuotaSpec_PrivateToPublic(in *privatev1.QuotaSpec, out *QuotaSpec, s conversion.Scope) error {
+	return autoConvert_QuotaSpec_PrivateToPublic(in, out, s)
+}
+
+func autoConvert_QuotaSpec_PublicToPrivate(in *QuotaSpec, out *privatev1.QuotaSpec, s conversion.Scope) error {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}
+
+// Convert_QuotaSpec_PublicToPrivate is an autogenerated conversion function.
+func Convert_QuotaSpec_PublicToPrivate(in *QuotaSpec, out *privatev1.QuotaSpec, s conversion.Scope) error {
+	return autoConvert_QuotaSpec_PublicToPrivate(in, out, s)
+}
+
+func autoConvert_QuotaStatus_PrivateToPublic(in *privatev1.QuotaStatus, out *QuotaStatus, s conversion.Scope) error {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}
+
+// Convert_QuotaStatus_PrivateToPublic is an autogenerated conversion function.
+func Convert_QuotaStatus_PrivateToPublic(in *privatev1.QuotaStatus, out *QuotaStatus, s conversion.Scope) error {
+	return autoConvert_QuotaStatus_PrivateToPublic(in, out, s)
+}
+
+func autoConvert_QuotaStatus_PublicToPrivate(in *QuotaStatus, out *privatev1.QuotaStatus, s conversion.Scope) error {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(data, out)
+}
+
+// Convert_QuotaStatus_PublicToPrivate is an autogenerated conversion function.
+func Convert_QuotaStatus_PublicToPrivate(in *QuotaStatus, out *privatev1.QuotaStatus, s conversion.Scope) error {
+	return autoConvert_QuotaStatus_PublicToPrivate(in, out, s)
 }
 
 func autoConvert_ReleaseSpec_PrivateToPublic(in *privatev1.ReleaseSpec, out *ReleaseSpec, s conversion.Scope) error {

@@ -1,0 +1,110 @@
+description: |-
+  Quota is the authoritative per-namespace record of resource limits and live
+  consumption for HostedCluster and NodePool objects. Each namespace has exactly
+  one Quota object, named "default", created and maintained by the platform.
+  Users have read-only access via the public API; operators manage limits and
+  auto-approval thresholds via the private API.
+properties:
+  apiVersion:
+    description: |-
+      APIVersion defines the versioned schema of this representation of an object.
+      Servers should convert recognized schemas to the latest internal value, and
+      may reject unrecognized values.
+      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+    type: string
+  kind:
+    description: |-
+      Kind is a string value representing the REST resource this object represents.
+      Servers may infer this from the endpoint the client submits requests to.
+      Cannot be updated.
+      In CamelCase.
+      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+    type: string
+  metadata:
+    type: object
+  spec:
+    description: spec contains the configured resource limits for this namespace.
+    properties:
+      resources:
+        description: resources contains the per-resource quota configurations.
+        items:
+          description: QuotaResourceSpec contains the quota configuration for a single
+            resource kind.
+          properties:
+            autoApproveThreshold:
+              description: |-
+                autoApproveThreshold is the maximum requestedLimit that the QuotaRequest
+                controller will approve automatically without operator intervention.
+                This field is internal and not exposed on the public API.
+              format: int32
+              minimum: 0
+              type: integer
+            limit:
+              description: |-
+                limit is the effective enforced limit for this resource in the namespace.
+                It reflects the base limit, adjusted by any approved QuotaRequest or
+                operator-set manualLimit.
+              format: int32
+              minimum: 0
+              type: integer
+            manualLimit:
+              description: |-
+                manualLimit is an operator-set override. When set, it takes precedence over
+                the base limit and any approved QuotaRequests. Visible via the private API only.
+              format: int32
+              minimum: 0
+              type: integer
+            resource:
+              description: resource is the plural lowercase resource name, e.g. "hostedclusters"
+                or "nodepools".
+              enum:
+              - hostedclusters
+              - nodepools
+              type: string
+          required:
+          - limit
+          - resource
+          type: object
+        type: array
+        x-kubernetes-list-map-keys:
+        - resource
+        x-kubernetes-list-type: map
+    type: object
+  status:
+    description: status contains live consumption data observed by the platform.
+    properties:
+      resources:
+        description: resources contains per-resource consumption data.
+        items:
+          description: QuotaResourceStatus contains live consumption data for a single
+            resource kind.
+          properties:
+            current:
+              description: current is the number of objects of this resource kind
+                currently in the namespace.
+              format: int32
+              minimum: 0
+              type: integer
+            quotaReachedTime:
+              description: |-
+                quotaReachedTime is the time at which the limit was first reached for this
+                resource. Null when the limit has not been reached.
+              format: date-time
+              type: string
+            resource:
+              description: resource is the plural lowercase resource name, e.g. "hostedclusters"
+                or "nodepools".
+              enum:
+              - hostedclusters
+              - nodepools
+              type: string
+          required:
+          - current
+          - resource
+          type: object
+        type: array
+        x-kubernetes-list-map-keys:
+        - resource
+        x-kubernetes-list-type: map
+    type: object
+type: object
