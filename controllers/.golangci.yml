@@ -52,6 +52,12 @@ linters:
           - unparam
         text: 'makeNP - npID always receives "np-1"'
         path: '^nodepoolvrresolution/nodepoolvrresolution_controller_test\.go$'
+      # Test helpers in reconcile_test.go are deliberately parameterized for
+      # readability — callers always use "ns" in current tests but the signature
+      # documents the variable and makes future multi-namespace tests easy.
+      - linters:
+          - unparam
+        path: '^quota/reconcile_test\.go$'
 
 severity:
   default: error
