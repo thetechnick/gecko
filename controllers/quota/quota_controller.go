@@ -17,12 +17,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+// resourceNames is the ordered list of resource kinds tracked in Quota status.
+var resourceNames = []string{"hostedclusters", "nodepools"}
+
 // highUsageThreshold is the fraction of the limit at which the HighUsage
 // condition is set to True (80%).
 const highUsageThreshold = 0.80
 
-// resourceNames is the ordered list of resource kinds tracked in Quota status.
-var resourceNames = []string{"hostedclusters", "nodepools"}
+// ─── Controller ──────────────────────────────────────────────────────────────
 
 // QuotaStatusReconciler reconciles the Quota status for a namespace.
 // It is triggered by changes to Cluster and NodePool objects. On each
@@ -30,8 +32,8 @@ var resourceNames = []string{"hostedclusters", "nodepools"}
 //  1. Ensures the namespace's Quota singleton ("default") exists, creating it
 //     with base defaults when absent.
 //  2. Counts current Cluster and NodePool objects in the namespace.
-//  3. Updates Quota.status.resources with the live counts, effective limits,
-//     and quotaReachedTime for each resource kind.
+//  3. Updates Quota.status with the live counts, effective limits,
+//     quotaReachedTime, and the HighUsage condition for each resource kind.
 type QuotaStatusReconciler struct {
 	log    logger.Logger
 	client client.Client
@@ -43,29 +45,23 @@ func NewQuotaStatusReconciler(log logger.Logger, c client.Client) *QuotaStatusRe
 }
 
 // Reconcile is triggered whenever a Cluster or NodePool changes in the
-// namespace identified by req.Namespace. req.Name is the name of the
-// triggering object and is not used directly — the reconciler always
-// operates on the namespace's Quota singleton.
+// namespace identified by req.Namespace.
 func (r *QuotaStatusReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
 	ns := req.Namespace
 
-	// 1. Ensure the Quota singleton exists.
 	quota, err := r.ensureQuota(ctx, ns)
 	if err != nil {
 		return reconcile.Result{}, fmt.Errorf("quota-status: ensure Quota for namespace %s: %w", ns, err)
 	}
 
-	// 2. Count current resources.
 	counts, err := r.countResources(ctx, ns)
 	if err != nil {
 		return reconcile.Result{}, fmt.Errorf("quota-status: count resources in namespace %s: %w", ns, err)
 	}
 
-	// 3. Build the desired status.
-	newStatus := r.buildStatus(quota, counts)
+	newStatus := BuildQuotaStatus(quota, counts, metav1.NewTime(time.Now().UTC()))
 
-	// 4. Patch the status only when it differs.
-	if statusEqual(quota.Status, newStatus) {
+	if StatusEqual(quota.Status, newStatus) {
 		return reconcile.Result{}, nil
 	}
 
@@ -74,7 +70,8 @@ func (r *QuotaStatusReconciler) Reconcile(ctx context.Context, req reconcile.Req
 	if err := r.client.Status().Update(ctx, updated); err != nil {
 		return reconcile.Result{}, fmt.Errorf("quota-status: update Quota status %s/default: %w", ns, err)
 	}
-	r.log.Infof(ctx, "quota-status: updated Quota status for namespace %s: %v", ns, countsLogLine(counts))
+	r.log.Infof(ctx, "quota-status: updated Quota status for namespace %s: hostedclusters=%d nodepools=%d",
+		ns, counts["hostedclusters"], counts["nodepools"])
 	return reconcile.Result{}, nil
 }
 
@@ -90,7 +87,6 @@ func (r *QuotaStatusReconciler) ensureQuota(ctx context.Context, ns string) (*pr
 		return nil, fmt.Errorf("get Quota: %w", err)
 	}
 
-	// Bootstrap: create the singleton with base defaults.
 	defaultThresholdClusters := quotapkg.DefaultAutoApproveThresholdClusters
 	defaultThresholdNodePools := quotapkg.DefaultAutoApproveThresholdNodePools
 	quota = privatev1.Quota{
@@ -115,7 +111,6 @@ func (r *QuotaStatusReconciler) ensureQuota(ctx context.Context, ns string) (*pr
 	}
 	if err := r.client.Create(ctx, &quota); err != nil {
 		if apierrors.IsAlreadyExists(err) {
-			// Another controller instance created it concurrently — re-fetch.
 			if getErr := r.client.Get(ctx, client.ObjectKey{Namespace: ns, Name: "default"}, &quota); getErr != nil {
 				return nil, fmt.Errorf("get Quota after concurrent creation: %w", getErr)
 			}
@@ -146,13 +141,18 @@ func (r *QuotaStatusReconciler) countResources(ctx context.Context, ns string) (
 	return counts, nil
 }
 
-// buildStatus constructs a QuotaStatus from the current counts, preserving
-// quotaReachedTime when the limit was already reached, and maintaining the
-// HighUsage condition when any resource has reached 80% of its effective limit.
-func (r *QuotaStatusReconciler) buildStatus(quota *privatev1.Quota, counts map[string]int32) privatev1.QuotaStatus {
-	now := metav1.NewTime(time.Now().UTC())
+// ─── Pure business logic (package-level, easily unit-tested) ─────────────────
 
-	// Index existing status entries for quotaReachedTime preservation.
+// BuildQuotaStatus constructs a QuotaStatus from the current counts and the
+// existing Quota object. now is the timestamp to use for newly-observed events.
+//
+// Rules:
+//   - quotaReachedTime is preserved once set and only cleared when the resource
+//     drops below its limit.
+//   - HighUsage condition is True when any resource is at or above 80% of its
+//     effective limit.
+func BuildQuotaStatus(quota *privatev1.Quota, counts map[string]int32, now metav1.Time) privatev1.QuotaStatus {
+	// Index previous quotaReachedTime values by resource name.
 	prevReached := make(map[string]*metav1.Time, len(quota.Status.Resources))
 	for _, rs := range quota.Status.Resources {
 		if rs.QuotaReachedTime != nil {
@@ -166,7 +166,7 @@ func (r *QuotaStatusReconciler) buildStatus(quota *privatev1.Quota, counts map[s
 
 	for _, resource := range resourceNames {
 		current := counts[resource]
-		limit := effectiveLimitFromSpec(quota, resource)
+		limit := EffectiveLimitFromSpec(quota, resource)
 
 		var reachedTime *metav1.Time
 		if current >= limit {
@@ -178,7 +178,6 @@ func (r *QuotaStatusReconciler) buildStatus(quota *privatev1.Quota, counts map[s
 			}
 		}
 
-		// Track resources at or above the 80% high-usage threshold.
 		if limit > 0 && float64(current)/float64(limit) >= highUsageThreshold {
 			highUsageResources = append(highUsageResources, resource)
 		}
@@ -190,20 +189,17 @@ func (r *QuotaStatusReconciler) buildStatus(quota *privatev1.Quota, counts map[s
 		})
 	}
 
-	// Build the HighUsage condition from the current observation.
-	conditions := buildHighUsageCondition(quota.Status.Conditions, highUsageResources, quota.Generation, now)
-
+	conditions := BuildHighUsageCondition(quota.Status.Conditions, highUsageResources, quota.Generation, now)
 	return privatev1.QuotaStatus{
 		Conditions: conditions,
 		Resources:  resources,
 	}
 }
 
-// buildHighUsageCondition returns an updated conditions slice with the HighUsage
-// condition set according to whether any resources are at or above 80% usage.
-// It preserves the LastTransitionTime from the existing condition when the
-// status (True/False) has not changed.
-func buildHighUsageCondition(existing []metav1.Condition, highUsageResources []string, generation int64, now metav1.Time) []metav1.Condition {
+// BuildHighUsageCondition returns an updated conditions slice with the HighUsage
+// condition reflecting whether any resource is at or above 80% usage.
+// LastTransitionTime is preserved when the Status (True/False) has not changed.
+func BuildHighUsageCondition(existing []metav1.Condition, highUsageResources []string, generation int64, now metav1.Time) []metav1.Condition {
 	isHigh := len(highUsageResources) > 0
 
 	var condStatus metav1.ConditionStatus
@@ -222,7 +218,6 @@ func buildHighUsageCondition(existing []metav1.Condition, highUsageResources []s
 		message = "all resources are below 80% of their quota limits"
 	}
 
-	// Preserve LastTransitionTime when the condition status has not changed.
 	transitionTime := now
 	for _, c := range existing {
 		if c.Type == privatev1.QuotaConditionHighUsage && c.Status == condStatus {
@@ -240,17 +235,15 @@ func buildHighUsageCondition(existing []metav1.Condition, highUsageResources []s
 		Message:            message,
 	}
 
-	// Use meta.SetStatusCondition to merge into a copy of the existing slice.
 	out := make([]metav1.Condition, len(existing))
 	copy(out, existing)
 	meta.SetStatusCondition(&out, newCond)
 	return out
 }
 
-// effectiveLimitFromSpec returns the enforced limit for the resource from the
-// Quota spec, applying the same precedence as the enforcer: manualLimit >
-// limit > base default.
-func effectiveLimitFromSpec(quota *privatev1.Quota, resource string) int32 {
+// EffectiveLimitFromSpec returns the enforced limit for the resource from the
+// Quota spec, applying precedence: manualLimit > limit > base default.
+func EffectiveLimitFromSpec(quota *privatev1.Quota, resource string) int32 {
 	for _, r := range quota.Spec.Resources {
 		if r.Resource == resource {
 			if r.ManualLimit != nil {
@@ -259,17 +252,15 @@ func effectiveLimitFromSpec(quota *privatev1.Quota, resource string) int32 {
 			return r.Limit
 		}
 	}
-	// Fall back to hard-coded base defaults when the spec entry is absent.
 	if resource == "nodepools" {
 		return quotapkg.DefaultNodePoolLimit
 	}
 	return quotapkg.DefaultClusterLimit
 }
 
-// statusEqual reports whether two QuotaStatus values are semantically
-// identical — same conditions, same resources with the same counts and reached
-// times. This avoids spurious status updates.
-func statusEqual(a, b privatev1.QuotaStatus) bool {
+// StatusEqual reports whether two QuotaStatus values are semantically identical,
+// used to avoid spurious status updates.
+func StatusEqual(a, b privatev1.QuotaStatus) bool {
 	if !conditionsEqual(a.Conditions, b.Conditions) {
 		return false
 	}
@@ -293,8 +284,7 @@ func statusEqual(a, b privatev1.QuotaStatus) bool {
 	return true
 }
 
-// conditionsEqual reports whether two condition slices are semantically
-// identical for the purpose of avoiding spurious status writes.
+// conditionsEqual reports whether two condition slices are semantically identical.
 func conditionsEqual(a, b []metav1.Condition) bool {
 	if len(a) != len(b) {
 		return false
@@ -317,8 +307,4 @@ func conditionsEqual(a, b []metav1.Condition) bool {
 		}
 	}
 	return true
-}
-
-func countsLogLine(counts map[string]int32) string {
-	return fmt.Sprintf("hostedclusters=%d nodepools=%d", counts["hostedclusters"], counts["nodepools"])
 }
