@@ -107,6 +107,13 @@ properties:
         - Pending
         - Approved
         - Denied
+        - Superseded
+        type: string
+      supersededBy:
+        description: |-
+          supersededBy is the name of the newer QuotaRequest that superseded this
+          one. Set only when phase is Superseded.
+        maxLength: 253
         type: string
     type: object
 required:

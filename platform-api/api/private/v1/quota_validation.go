@@ -21,8 +21,8 @@ func (qr *QuotaRequest) ValidateUpdate(_ context.Context, _ runtime.Object) erro
 
 // ValidateDelete validates QuotaRequest deletion.
 // Approved requests are immutable audit records and cannot be deleted via the
-// public API. Users may delete Pending or Denied requests (e.g. to withdraw
-// or clear a request).
+// public API. Users may delete Pending, Denied, or Superseded requests (e.g.
+// to withdraw a request, clear a rejected one, or clean up superseded ones).
 func (qr *QuotaRequest) ValidateDelete(_ context.Context) error {
 	if qr.Status.Phase == QuotaRequestPhaseApproved {
 		return fmt.Errorf(

@@ -196,7 +196,7 @@ type QuotaRequestStatus struct {
 	// phase is the current lifecycle phase of the request.
 
 	// +optional
-	// +kubebuilder:validation:Enum=Pending;Approved;Denied
+	// +kubebuilder:validation:Enum=Pending;Approved;Denied;Superseded
 	Phase QuotaRequestPhase `json:"phase,omitempty"`
 
 	// approvedLimit is the limit value that was granted. Set only when phase is Approved.
@@ -215,6 +215,13 @@ type QuotaRequestStatus struct {
 	// +optional
 	// +kubebuilder:validation:MaxLength=1024
 	DecisionNote *string `json:"decisionNote,omitempty"`
+
+	// supersededBy is the name of the newer QuotaRequest that superseded this
+	// one. Set only when phase is Superseded.
+
+	// +optional
+	// +kubebuilder:validation:MaxLength=253
+	SupersededBy *string `json:"supersededBy,omitempty"`
 }
 
 func init() {

@@ -223,6 +223,11 @@ const (
 	// QuotaRequestPhaseDenied means an operator has reviewed and rejected the
 	// request.
 	QuotaRequestPhaseDenied QuotaRequestPhase = "Denied"
+	// QuotaRequestPhaseSuperseded means a newer QuotaRequest targeting the same
+	// resource was submitted in the same namespace. The newer request takes
+	// precedence; this one will no longer be evaluated. Superseded requests may
+	// be deleted via the public API.
+	QuotaRequestPhaseSuperseded QuotaRequestPhase = "Superseded"
 )
 
 // QuotaRequestStatus contains the current phase and decision details for a
@@ -231,7 +236,7 @@ type QuotaRequestStatus struct {
 	// phase is the current lifecycle phase of the request.
 	// +orlop:public
 	// +optional
-	// +kubebuilder:validation:Enum=Pending;Approved;Denied
+	// +kubebuilder:validation:Enum=Pending;Approved;Denied;Superseded
 	Phase QuotaRequestPhase `json:"phase,omitempty"`
 
 	// approvedLimit is the limit value that was granted. Set only when phase is Approved.
@@ -250,6 +255,13 @@ type QuotaRequestStatus struct {
 	// +optional
 	// +kubebuilder:validation:MaxLength=1024
 	DecisionNote *string `json:"decisionNote,omitempty"`
+
+	// supersededBy is the name of the newer QuotaRequest that superseded this
+	// one. Set only when phase is Superseded.
+	// +orlop:public
+	// +optional
+	// +kubebuilder:validation:MaxLength=253
+	SupersededBy *string `json:"supersededBy,omitempty"`
 
 	// autoApproved indicates whether this request was automatically approved by
 	// the controller (true) or by an operator (false). This field is internal

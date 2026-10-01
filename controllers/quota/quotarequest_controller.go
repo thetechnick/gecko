@@ -2,11 +2,14 @@
 // The controller watches QuotaRequest objects and auto-approves those whose
 // requestedLimit falls within the namespace's autoApproveThreshold. Requests
 // that exceed the threshold are left in Pending phase for operator review.
+// When multiple Pending requests target the same resource, all but the newest
+// (by creationTimestamp) are transitioned to Superseded.
 package quota
 
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/openshift-online/gecko/controllers/util/logger"
@@ -49,6 +52,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 		return reconcile.Result{}, nil
 	}
 
+	// Supersession: list all Pending requests for the same resource and mark
+	// all but the newest one as Superseded. The newest takes precedence.
+	newest, err := r.supersedeStalePending(ctx, &qr)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	// If this request was itself superseded, stop processing it.
+	if !newest {
+		return reconcile.Result{}, nil
+	}
+
 	// Read the namespace's Quota to obtain the autoApproveThreshold.
 	var quota privatev1.Quota
 	if err := r.client.Get(ctx, client.ObjectKey{Namespace: req.Namespace, Name: "default"}, &quota); err != nil {
@@ -74,6 +88,76 @@ func (r *Reconciler) Reconcile(ctx context.Context, req reconcile.Request) (reco
 	r.log.Infof(ctx, "quota: QuotaRequest %s/%s requestedLimit=%d exceeds autoApproveThreshold=%d for %s, leaving Pending",
 		req.Namespace, req.Name, qr.Spec.RequestedLimit, threshold, qr.Spec.Resource)
 	return reconcile.Result{}, nil
+}
+
+// supersedeStalePending lists all Pending QuotaRequests for the same resource
+// in the same namespace. It marks every request that is older than the current
+// one as Superseded (setting supersededBy to the current request's name).
+// It returns true when the current request is the newest (and should continue
+// to be processed), or false when the current request was itself superseded by
+// a newer one (in which case the caller should stop processing it).
+func (r *Reconciler) supersedeStalePending(ctx context.Context, current *privatev1.QuotaRequest) (bool, error) {
+	var allRequests privatev1.QuotaRequestList
+	if err := r.client.List(ctx, &allRequests, client.InNamespace(current.Namespace)); err != nil {
+		return false, fmt.Errorf("quota: list QuotaRequests in namespace %s: %w", current.Namespace, err)
+	}
+
+	// Collect only Pending requests for the same resource (including current).
+	pending := make([]*privatev1.QuotaRequest, 0, len(allRequests.Items))
+	for i := range allRequests.Items {
+		qr := &allRequests.Items[i]
+		if qr.Spec.Resource == current.Spec.Resource &&
+			(qr.Status.Phase == "" || qr.Status.Phase == privatev1.QuotaRequestPhasePending) {
+			pending = append(pending, qr)
+		}
+	}
+
+	if len(pending) <= 1 {
+		// Only one Pending request for this resource — nothing to supersede.
+		return true, nil
+	}
+
+	// Sort by creationTimestamp ascending; break ties by name for determinism.
+	sort.Slice(pending, func(i, j int) bool {
+		ti := pending[i].CreationTimestamp.Time
+		tj := pending[j].CreationTimestamp.Time
+		if !ti.Equal(tj) {
+			return ti.Before(tj)
+		}
+		return pending[i].Name < pending[j].Name
+	})
+
+	newest := pending[len(pending)-1]
+
+	// Supersede all requests that are older than the newest.
+	for _, stale := range pending[:len(pending)-1] {
+		if err := r.supersede(ctx, stale, newest.Name); err != nil {
+			return false, err
+		}
+	}
+
+	// Report whether the current request is the one that should proceed.
+	return current.Name == newest.Name, nil
+}
+
+// supersede transitions a QuotaRequest to the Superseded phase, recording the
+// name of the newer request that replaced it.
+func (r *Reconciler) supersede(ctx context.Context, qr *privatev1.QuotaRequest, newerName string) error {
+	now := metav1.NewTime(time.Now().UTC())
+	note := fmt.Sprintf("superseded by a newer QuotaRequest %q for the same resource", newerName)
+
+	updated := qr.DeepCopy()
+	updated.Status.Phase = privatev1.QuotaRequestPhaseSuperseded
+	updated.Status.SupersededBy = &newerName
+	updated.Status.DecidedAt = &now
+	updated.Status.DecisionNote = &note
+
+	if err := r.client.Status().Update(ctx, updated); err != nil {
+		return fmt.Errorf("quota: supersede QuotaRequest %s/%s: %w", qr.Namespace, qr.Name, err)
+	}
+	r.log.Infof(ctx, "quota: superseded QuotaRequest %s/%s (resource=%s) by %s",
+		qr.Namespace, qr.Name, qr.Spec.Resource, newerName)
+	return nil
 }
 
 // approve auto-approves the QuotaRequest and updates the Quota limit.

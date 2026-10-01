@@ -82,6 +82,10 @@ properties:
         - Pending
         - Approved
         - Denied
+        - Superseded
+        type: string
+      supersededBy:
+        maxLength: 253
         type: string
     type: object
 required:

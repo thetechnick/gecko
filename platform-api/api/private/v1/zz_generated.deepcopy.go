@@ -884,6 +884,11 @@ func (in *QuotaRequestStatus) DeepCopyInto(out *QuotaRequestStatus) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.SupersededBy != nil {
+		in, out := &in.SupersededBy, &out.SupersededBy
+		*out = new(string)
+		**out = **in
+	}
 	if in.AutoApproved != nil {
 		in, out := &in.AutoApproved, &out.AutoApproved
 		*out = new(bool)
