@@ -10,11 +10,16 @@ import (
 	quotapkg "github.com/openshift-online/gecko/platform-api/quota"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
+// highUsageThreshold is the fraction of the limit at which the HighUsage
+// condition is set to True (80%).
+const highUsageThreshold = 0.80
 
 // resourceNames is the ordered list of resource kinds tracked in Quota status.
 var resourceNames = []string{"hostedclusters", "nodepools"}
@@ -142,8 +147,8 @@ func (r *QuotaStatusReconciler) countResources(ctx context.Context, ns string) (
 }
 
 // buildStatus constructs a QuotaStatus from the current counts, preserving
-// quotaReachedTime when the limit was already reached, and setting it when
-// the limit is first reached.
+// quotaReachedTime when the limit was already reached, and maintaining the
+// HighUsage condition when any resource has reached 80% of its effective limit.
 func (r *QuotaStatusReconciler) buildStatus(quota *privatev1.Quota, counts map[string]int32) privatev1.QuotaStatus {
 	now := metav1.NewTime(time.Now().UTC())
 
@@ -157,6 +162,8 @@ func (r *QuotaStatusReconciler) buildStatus(quota *privatev1.Quota, counts map[s
 	}
 
 	var resources []privatev1.QuotaResourceStatus
+	var highUsageResources []string
+
 	for _, resource := range resourceNames {
 		current := counts[resource]
 		limit := effectiveLimitFromSpec(quota, resource)
@@ -164,15 +171,17 @@ func (r *QuotaStatusReconciler) buildStatus(quota *privatev1.Quota, counts map[s
 		var reachedTime *metav1.Time
 		if current >= limit {
 			if prev, ok := prevReached[resource]; ok {
-				// Preserve the original time the limit was first reached.
 				reachedTime = prev
 			} else {
-				// First time reaching the limit.
 				t := now
 				reachedTime = &t
 			}
 		}
-		// If current < limit, reachedTime stays nil (limit no longer reached).
+
+		// Track resources at or above the 80% high-usage threshold.
+		if limit > 0 && float64(current)/float64(limit) >= highUsageThreshold {
+			highUsageResources = append(highUsageResources, resource)
+		}
 
 		resources = append(resources, privatev1.QuotaResourceStatus{
 			Resource:         resource,
@@ -181,7 +190,61 @@ func (r *QuotaStatusReconciler) buildStatus(quota *privatev1.Quota, counts map[s
 		})
 	}
 
-	return privatev1.QuotaStatus{Resources: resources}
+	// Build the HighUsage condition from the current observation.
+	conditions := buildHighUsageCondition(quota.Status.Conditions, highUsageResources, quota.Generation, now)
+
+	return privatev1.QuotaStatus{
+		Conditions: conditions,
+		Resources:  resources,
+	}
+}
+
+// buildHighUsageCondition returns an updated conditions slice with the HighUsage
+// condition set according to whether any resources are at or above 80% usage.
+// It preserves the LastTransitionTime from the existing condition when the
+// status (True/False) has not changed.
+func buildHighUsageCondition(existing []metav1.Condition, highUsageResources []string, generation int64, now metav1.Time) []metav1.Condition {
+	isHigh := len(highUsageResources) > 0
+
+	var condStatus metav1.ConditionStatus
+	var reason, message string
+	if isHigh {
+		condStatus = metav1.ConditionTrue
+		reason = "HighUsage"
+		if len(highUsageResources) == 1 {
+			message = fmt.Sprintf("resource %q has reached 80%% of its quota limit; consider submitting a QuotaRequest", highUsageResources[0])
+		} else {
+			message = fmt.Sprintf("resources %v have reached 80%% of their quota limits; consider submitting a QuotaRequest", highUsageResources)
+		}
+	} else {
+		condStatus = metav1.ConditionFalse
+		reason = "UsageNormal"
+		message = "all resources are below 80% of their quota limits"
+	}
+
+	// Preserve LastTransitionTime when the condition status has not changed.
+	transitionTime := now
+	for _, c := range existing {
+		if c.Type == privatev1.QuotaConditionHighUsage && c.Status == condStatus {
+			transitionTime = c.LastTransitionTime
+			break
+		}
+	}
+
+	newCond := metav1.Condition{
+		Type:               privatev1.QuotaConditionHighUsage,
+		Status:             condStatus,
+		ObservedGeneration: generation,
+		LastTransitionTime: transitionTime,
+		Reason:             reason,
+		Message:            message,
+	}
+
+	// Use meta.SetStatusCondition to merge into a copy of the existing slice.
+	out := make([]metav1.Condition, len(existing))
+	copy(out, existing)
+	meta.SetStatusCondition(&out, newCond)
+	return out
 }
 
 // effectiveLimitFromSpec returns the enforced limit for the resource from the
@@ -204,9 +267,12 @@ func effectiveLimitFromSpec(quota *privatev1.Quota, resource string) int32 {
 }
 
 // statusEqual reports whether two QuotaStatus values are semantically
-// identical — same resources in the same order with the same counts and
-// reached times. This avoids spurious status updates.
+// identical — same conditions, same resources with the same counts and reached
+// times. This avoids spurious status updates.
 func statusEqual(a, b privatev1.QuotaStatus) bool {
+	if !conditionsEqual(a.Conditions, b.Conditions) {
+		return false
+	}
 	if len(a.Resources) != len(b.Resources) {
 		return false
 	}
@@ -221,6 +287,32 @@ func statusEqual(a, b privatev1.QuotaStatus) bool {
 			return false
 		}
 		if aHas && !ar.QuotaReachedTime.Equal(br.QuotaReachedTime) {
+			return false
+		}
+	}
+	return true
+}
+
+// conditionsEqual reports whether two condition slices are semantically
+// identical for the purpose of avoiding spurious status writes.
+func conditionsEqual(a, b []metav1.Condition) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	bByType := make(map[string]metav1.Condition, len(b))
+	for _, c := range b {
+		bByType[c.Type] = c
+	}
+	for _, ac := range a {
+		bc, ok := bByType[ac.Type]
+		if !ok {
+			return false
+		}
+		if ac.Status != bc.Status ||
+			ac.Reason != bc.Reason ||
+			ac.Message != bc.Message ||
+			ac.ObservedGeneration != bc.ObservedGeneration ||
+			!ac.LastTransitionTime.Equal(&bc.LastTransitionTime) {
 			return false
 		}
 	}

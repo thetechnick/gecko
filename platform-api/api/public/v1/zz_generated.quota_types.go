@@ -68,6 +68,17 @@ type QuotaResourceSpec struct {
 
 // QuotaStatus contains live consumption data for a namespace.
 type QuotaStatus struct {
+	// conditions represents the latest observed state of the Quota object.
+	// The HighUsage condition is True when at least one resource has reached
+	// 80% of its effective limit.
+
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +patchStrategy=merge
+	// +patchMergeKey=type
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// resources contains per-resource consumption data.
 
 	// +optional

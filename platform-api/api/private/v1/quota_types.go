@@ -80,8 +80,27 @@ type QuotaResourceSpec struct {
 	AutoApproveThreshold *int32 `json:"autoApproveThreshold,omitempty"`
 }
 
+const (
+	// QuotaConditionHighUsage is set to True when at least one tracked resource
+	// has reached or exceeded 80% of its effective limit. It transitions back to
+	// False once all resources drop below the threshold. The condition signals
+	// that a QuotaRequest should be submitted before the limit is exhausted.
+	QuotaConditionHighUsage = "HighUsage"
+)
+
 // QuotaStatus contains live consumption data for a namespace.
 type QuotaStatus struct {
+	// conditions represents the latest observed state of the Quota object.
+	// The HighUsage condition is True when at least one resource has reached
+	// 80% of its effective limit.
+	// +orlop:public
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +patchStrategy=merge
+	// +patchMergeKey=type
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// resources contains per-resource consumption data.
 	// +orlop:public
 	// +optional
